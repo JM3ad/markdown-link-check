@@ -75,6 +75,10 @@ describe('markdown-link-check', function () {
             res.json({a:'b'});
         });
 
+        app.get('/foo-%23', function (req, res) {
+            res.sendStatus(200);
+        });
+
         const server = http.createServer(app);
         server.listen(0 /* random open port */, 'localhost', function serverListen(err) {
             if (err) {
@@ -87,6 +91,7 @@ describe('markdown-link-check', function () {
     });
 
     it('should check the links in sample.md', function (done) {
+        console.log(baseUrl);
         markdownLinkCheck(
             fs.readFileSync(path.join(__dirname, 'sample.md')).toString().replace(/%%BASE_URL%%/g, baseUrl),
             {
@@ -194,7 +199,8 @@ describe('markdown-link-check', function () {
     });
 
     it('should check the links in local-file.md', function (done) {
-        markdownLinkCheck(fs.readFileSync(path.join(__dirname, 'local-file.md')).toString().replace(/%%BASE_URL%%/g, 'file://' + __dirname), {baseUrl: 'file://' + __dirname, projectBaseUrl: 'file://' + __dirname + "/..",replacementPatterns: [{ pattern: '^/', replacement: "{{BASEURL}}/"}]}, function (err, results) {
+        const markdown = fs.readFileSync(path.join(__dirname, 'local-file.md')).toString().replace(/%%BASE_URL%%/g, 'file://' + __dirname);
+        markdownLinkCheck(markdown, {baseUrl: 'file://' + __dirname, projectBaseUrl: 'file://' + __dirname + "/..",replacementPatterns: [{ pattern: '^/', replacement: "{{BASEURL}}/"}]}, function (err, results) {
             expect(err).to.be(null);
             expect(results).to.be.an('array');
 
@@ -242,6 +248,17 @@ describe('markdown-link-check', function () {
 
     it('should handle links with parens', function (done) {
         markdownLinkCheck('[test](' + baseUrl + '/foo(a=b.42).aspx)', function (err, results) {
+            expect(err).to.be(null);
+            expect(results).to.be.an('array');
+            expect(results).to.have.length(1);
+            expect(results[0].statusCode).to.be(200);
+            expect(results[0].status).to.be('alive');
+            done();
+        });
+    });
+
+    it('should handle links with percent', function (done) {
+        markdownLinkCheck('[test](' + baseUrl + '/foo-\\%23)', function (err, results) {
             expect(err).to.be(null);
             expect(results).to.be.an('array');
             expect(results).to.have.length(1);
